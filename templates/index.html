@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap" rel="stylesheet">
+  <title>드론 실종자 탐색 시스템</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1.2">
+  <script src="{{ url_for('static', filename='script.js') }}"></script> 
+
+</head>
+<body>
+  <header>드론 실종자 탐색 시스템 </header>
+
+<main>
+  <section class="left-panel">
+    <div class="filter-group">
+      <label for="topColor">상의 색상을 입력하세요</label>
+      <select id="topColor">
+        <option value="pink">분홍</option>
+        <option value="white">흰색</option>
+        <option value="yellow">노랑</option>
+        <option value="blue">파랑</option>
+        <option value="green">초록</option>
+        <option value="light_green">연두</option>
+        <option value="purple">보라</option>
+        <option value="orange">주황</option>
+        <option value="brown">갈색</option>
+        <option value="black">검정</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="bottomColor">하의 색상을 입력하세요</label>
+      <select id="bottomColor">
+        <option value="pink">분홍</option>
+        <option value="white">흰색</option>
+        <option value="yellow">노랑</option>
+        <option value="blue">파랑</option>
+        <option value="green">초록</option>
+        <option value="light_green">연두</option>
+        <option value="purple">보라</option>
+        <option value="orange">주황</option>
+        <option value="brown">갈색</option>
+        <option value="black">검정</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <button id="searchButton">🔍 검색 시작</button>
+    </div>
+    <div class="detail">
+      <h3>실종자 정보</h3>
+      <img id="missingImage" src="" alt="실종자 이미지" />
+      <p id="missingInfo">검색 결과를 클릭하세요.</p>
+    </div>
+  </section>
+
+
+<!-- 오른쪽 패널 내부 -->
+<section class="right-panel">
+  <div id="map" style="width:100%; height:400px;"></div>
+  <div class="live-stream">
+    <h3>실시간 영상</h3>
+    <img id="liveVideo" src="http://192.168.219.105:8000/video" width="100%" />
+  </div>
+  <div class="result-list" id="resultList"></div>
+</section>
+
+
+<script>
+document.getElementById("uploadForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const formData = new FormData();
+  const topColor = document.getElementById("topColor").value;
+  const bottomColor = document.getElementById("bottomColor").value;
+  const videoFile = document.getElementById("videoFile").files[0];
+
+  if (!videoFile) {
+    alert("영상을 업로드해주세요!");
+    return;
+  }
+
+  formData.append("topColor", topColor);
+  formData.append("bottomColor", bottomColor);
+  formData.append("video", videoFile);
+
+  fetch("/analyze", {
+    method: "POST",
+    body: formData
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      const resultList = document.getElementById("resultList");
+      resultList.innerHTML = ""; // 이전 이미지 제거
+
+      if (data.images.length === 0) {
+        resultList.innerHTML = "<p>탐지된 사람이 없습니다.</p>";
+        return;
+      }
+
+      data.images.forEach((filename) => {
+        const img = document.createElement("img");
+        img.src = "/results/" + filename;
+        img.width = 200;
+        img.style.margin = "5px";
+        img.onclick = () => {
+          document.getElementById("missingImage").src = img.src;
+          document.getElementById("missingInfo").innerText = filename;
+        };
+        resultList.appendChild(img);
+      });
+    })
+    .catch((error) => {
+      console.error("에러 발생:", error);
+      alert("검색 중 오류가 발생했습니다.");
+    });
+});
+</script>
+
+<script>
+  window.initMap = function() {
+    const map = new google.maps.Map(document.getElementById("map"), {
+      center: { lat: 37.5665, lng: 126.9780 },
+      zoom: 12,
+    });
+  };
+</script>
+
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAMOYLeKUDl8biUQd35UMesSpP7ODi6v98&callback=initMap"
+  async defer
+></script>
+
+</body>
+</html>
